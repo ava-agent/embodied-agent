@@ -129,6 +129,30 @@ env.step(action)                         ros_node.send_cmd(action)
 | **3. ROS 2** | Docker 运行 ROS 2，Gazebo 仿真 | 2-4 周 |
 | **4. 真机部署** | 入门级机械臂 + Sim-to-Real 迁移 | 持续 |
 
+## 宇树 (Unitree) 机器人仿真
+
+本项目已集成宇树官方 MuJoCo 仿真环境，支持 Go2 / G1 / H1 全系列。
+
+| Go2 四足机器人 | G1 人形机器人 | H1 人形机器人 |
+|:---:|:---:|:---:|
+| ![go2](assets/screenshot_go2_sim.png) | ![g1](assets/screenshot_g1_sim.png) | ![h1](assets/screenshot_h1_sim.png) |
+| 12 DOF, ¥9.9万起 | 23-43 DOF, ¥7.2万起 | 27 DOF, ¥65万起 |
+
+```bash
+# 环境准备（需要 conda 环境）
+conda activate unitree
+
+# 启动 Go2 仿真
+cd unitree_mujoco/simulate_python
+python unitree_mujoco.py
+
+# 用 SDK 控制虚拟机器人（另一个终端）
+cd unitree_sdk2_python/example
+python go2_stand_example.py
+```
+
+宇树仿真的 API 和实机**完全一致**——仿真中写的代码改一个网络参数就能跑在真机上。详见 [docs/unitree_dev_guide.md](docs/unitree_dev_guide.md)。
+
 ## 上真机需要什么
 
 | 条件 | 最低方案 | 推荐方案 |
