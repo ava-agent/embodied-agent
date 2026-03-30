@@ -1,78 +1,127 @@
 # embodied-agent
 
-> 具身智能学习与仿真 Demo — 没有真实机器人也能学机器人 AI
-
 <p align="center">
-  <img src="assets/sim_to_real.png" width="600" alt="Sim-to-Real"/>
+  <img src="assets/banner.png" width="700" alt="Embodied AI"/>
 </p>
 
-本项目通过 **PyBullet 物理仿真器**，在你的电脑上运行完整的机器人「感知 → 决策 → 执行」控制流程。训练出的 AI 模型（`.pt` 文件）可直接部署到真实机器人上。
+<p align="center">
+  <b>具身智能学习与仿真 Demo</b> — 没有真实机器人也能学机器人 AI
+</p>
 
-## 运行效果
+<p align="center">
+  <a href="#快速开始">快速开始</a> &middot;
+  <a href="#demo-展示">Demo 展示</a> &middot;
+  <a href="#宇树-g1-人形机器人">宇树 G1</a> &middot;
+  <a href="#技术栈">技术栈</a> &middot;
+  <a href="#学习路线">学习路线</a>
+</p>
 
-Kuka iiwa 7自由度机械臂在仿真环境中抓取红色方块：
+---
 
-| 初始状态 | 接近目标 | 到达抓取位置 |
-|:---:|:---:|:---:|
-| ![initial](assets/screenshot_initial.png) | ![reaching](assets/screenshot_reaching.png) | ![grasp](assets/screenshot_grasp.png) |
-| 机械臂直立，方块在右前方 | 机械臂弯曲伸向目标 | 末端到达方块上方，误差 < 2cm |
+通过 **PyBullet / MuJoCo 物理仿真器**，在你的电脑上运行完整的机器人「感知 → 决策 → 执行」控制流程。训练出的 AI 模型可直接部署到真实机器人上。
 
 ## 快速开始
 
 ```bash
 git clone https://github.com/ava-agent/embodied-agent.git
 cd embodied-agent
-
-# 安装依赖
 pip install -r requirements.txt
 
-# Demo 1: 机械臂抓取（弹出3D窗口）
+# 运行第一个 Demo
 python demos/01_robot_arm_grasp.py
+```
 
-# Demo 2: 强化学习训练AI
+## Demo 展示
+
+### Demo 1: 机械臂抓取
+
+用**逆运动学**控制 Kuka 7-DOF 机械臂分三步抓取红色方块。
+
+| 初始状态 | 接近目标 | 到达抓取位置 |
+|:---:|:---:|:---:|
+| ![initial](assets/screenshot_initial.png) | ![reaching](assets/screenshot_reaching.png) | ![grasp](assets/screenshot_grasp.png) |
+| 机械臂直立 | 弯向目标 | 误差 < 2cm |
+
+```bash
+python demos/01_robot_arm_grasp.py
+```
+
+### Demo 2: 强化学习训练
+
+让**神经网络**通过试错学会控制机械臂。训练完输出 `trained_policy.pt` 模型文件。
+
+```python
+obs = env.get_observation()          # 感知（13维向量）
+action = policy_network(obs)         # 决策（AI 推理）
+env.step(action)                     # 执行（7个关节）
+```
+
+```bash
 python demos/02_rl_training.py
-
-# Demo 3: 部署训练好的模型
-python demos/03_deploy_model.py
 ```
 
-## Demo 说明
+### Demo 3: 模型部署
 
-### Demo 1: 机械臂抓取 — 传统控制
-
-用**逆运动学**（给定目标位置 → 计算关节角度）控制机械臂分三步抓取方块。
-
-```
-阶段1: 移动到目标上方  →  误差 0.055m
-阶段2: 下降接近目标    →  误差 0.018m
-阶段3: 到达抓取位置    →  误差 0.019m
-```
-
-核心概念：URDF 模型加载、逆运动学、位置控制
-
-### Demo 2: 强化学习训练 — AI 控制
-
-让**神经网络**通过反复试错学会控制机械臂。训练完成后输出 `trained_policy.pt` 模型文件。
+加载训练好的模型，在仿真中运行，展示仿真 vs 真机的代码对比：
 
 ```python
-# AI 控制的核心就是这3行
-obs = env.get_observation()               # 感知
-action = policy_network(obs)              # 决策（神经网络推理）
-env.step(action)                          # 执行
-```
-
-核心概念：Gymnasium 环境、策略网络、奖励设计、策略梯度
-
-### Demo 3: 模型部署 — Sim vs Real
-
-加载训练好的 `.pt` 模型，在仿真中运行，并展示仿真代码与真机代码的对比。
-
-```python
-# 仿真（本项目）                        # 真机（买了机器人后）
+# 仿真                                  # 真机
 obs = env.step(action)                   obs = ros_node.get_obs()
 action = policy(obs)  # ← 完全一样 →    action = policy(obs)
 env.step(action)                         ros_node.send_cmd(action)
 ```
+
+```bash
+python demos/03_deploy_model.py
+```
+
+### Demo 4: 宇树 G1 人形机器人动作
+
+用 **PD 力矩控制** 让 G1（29个驱动器）完成一系列全身动作。
+
+| 站立 | 挥手打招呼 | 左拳出击 |
+|:---:|:---:|:---:|
+| ![stand](assets/g1_act_stand.png) | ![wave](assets/g1_act_wave.png) | ![punch](assets/g1_act_punch_l.png) |
+| 双腿微弯，PD 控制稳定 | 右臂抬起挥动 | 转腰出拳，重心转移 |
+
+动作序列：站立 → 挥手 → 鞠躬 → 出拳 → 金鸡独立 → 太极起势
+
+```bash
+# 需要 conda 环境（含 MuJoCo + 宇树 SDK）
+conda activate unitree
+mjpython demos/04_g1_actions.py
+```
+
+> **为什么有些动作会摔倒？** 出拳和抬腿等剧烈动作用关键帧控制时容易失去平衡。这正是**强化学习的价值**——RL 能学到动态平衡策略，在做动作的同时实时调整全身关节补偿重心偏移。
+
+---
+
+## 宇树 G1 人形机器人
+
+<p align="center">
+  <img src="assets/sim_to_real.png" width="500" alt="Sim to Real"/>
+</p>
+
+本项目集成了宇树官方 MuJoCo 仿真，支持 Go2 / G1 / H1 全系列。
+
+| Go2 四足 | G1 人形 | H1 人形 |
+|:---:|:---:|:---:|
+| ![go2](assets/screenshot_go2_sim.png) | ![g1](assets/screenshot_g1_sim.png) | ![h1](assets/screenshot_h1_sim.png) |
+| 12 驱动器 | 29 驱动器 | 20 驱动器 |
+
+### 仿真到真机：只改一个参数
+
+```python
+# 仿真
+ChannelFactory.Instance().Init(0, "lo")      # 本地回环
+# 真机
+ChannelFactory.Instance().Init(0, "eth0")    # 以太网
+# 其他代码完全不变
+```
+
+详见 [docs/unitree_dev_guide.md](docs/unitree_dev_guide.md)
+
+---
 
 ## 架构
 
@@ -81,112 +130,75 @@ env.step(action)                         ros_node.send_cmd(action)
 </p>
 
 ```
-┌──────────────────────────────────────────────┐
-│  感知 Perception                              │
-│  获取关节角度 + 末端位置 + 目标位置              │
-│  (仿真: PyBullet API / 真机: ROS 2 Topic)     │
-├──────────────────────────────────────────────┤
-│  决策 Decision                                │
-│  神经网络推理: 观测 → 动作                      │
-│  (PyTorch, trained_policy.pt)                 │
-├──────────────────────────────────────────────┤
-│  执行 Action                                  │
-│  设置关节目标角度                               │
-│  (仿真: PyBullet 电机 / 真机: CAN总线→电机)     │
-└──────────────────────────────────────────────┘
+感知 Perception          决策 Decision           执行 Action
+─────────────           ─────────────           ─────────────
+关节角度+位置             神经网络推理             设置关节目标
+相机图像(进阶)           obs → action            电机力矩控制
+                         .pt 模型文件
+   │                        │                       │
+   └─ 仿真: PyBullet API    │                 仿真: data.ctrl
+   └─ 真机: ROS 2 Topic     └─ 两边完全一样    真机: CAN → 电机
 ```
 
 ## 技术栈
 
-| 组件 | 技术 | 作用 |
-|------|------|------|
-| 物理仿真 | **PyBullet** (Bullet 引擎) | 重力、碰撞、摩擦、力矩模拟 |
-| AI 框架 | **PyTorch** | 策略网络定义、训练、推理 |
-| RL 接口 | **Gymnasium** | 标准 obs/action/reward 接口 |
-| 机器人模型 | **URDF** (Kuka iiwa) | 描述关节、质量、形状的 XML |
-| 语言 | **Python 3.9+** | 全栈开发 |
-
-### 与生产级技术栈对比
-
-| 维度 | 本项目（入门） | 生产级 |
-|------|-------------|-------|
-| 仿真器 | PyBullet | Isaac Sim (NVIDIA) / MuJoCo |
-| AI 模型 | 3层MLP, 19K参数 | VLA 大模型 (pi0/OpenVLA), 数十亿参数 |
-| 感知输入 | 关节角度+位置 | RGB相机图像+深度图+点云 |
-| 中间件 | 直接 PyBullet API | ROS 2 + ros2_control + MoveIt 2 |
-| 部署硬件 | 你的电脑 | NVIDIA Jetson Orin |
+| 组件 | 本项目 | 生产级 |
+|------|-------|-------|
+| 物理仿真 | **PyBullet** / **MuJoCo** | Isaac Sim (NVIDIA) |
+| AI 框架 | **PyTorch** (19K参数 MLP) | VLA 大模型 (pi0/OpenVLA, 数十亿参数) |
+| 机器人 | **Kuka iiwa** / **Unitree G1** | 真实 G1 / Go2 |
+| 中间件 | 直接 API 调用 | ROS 2 + MoveIt 2 |
+| 部署 | 你的电脑 | Jetson Orin |
 
 ## 学习路线
 
 <p align="center">
-  <img src="assets/roadmap.png" width="600" alt="Learning Roadmap"/>
+  <img src="assets/roadmap.png" width="600" alt="Roadmap"/>
 </p>
 
 | 阶段 | 内容 | 时间 |
 |------|------|------|
-| **1. 本项目** | 运行 3 个 Demo，理解感知→决策→执行循环 | 1-2 周 |
-| **2. 进阶仿真** | MuJoCo + PPO/SAC 算法 + 图像输入 | 2-4 周 |
+| **1. 本项目** | 运行 4 个 Demo，理解感知→决策→执行 | 1-2 周 |
+| **2. 进阶仿真** | MuJoCo + PPO/SAC + 图像输入 | 2-4 周 |
 | **3. ROS 2** | Docker 运行 ROS 2，Gazebo 仿真 | 2-4 周 |
-| **4. 真机部署** | 入门级机械臂 + Sim-to-Real 迁移 | 持续 |
-
-## 宇树 (Unitree) 机器人仿真
-
-本项目已集成宇树官方 MuJoCo 仿真环境，支持 Go2 / G1 / H1 全系列。
-
-| Go2 四足机器人 | G1 人形机器人 | H1 人形机器人 |
-|:---:|:---:|:---:|
-| ![go2](assets/screenshot_go2_sim.png) | ![g1](assets/screenshot_g1_sim.png) | ![h1](assets/screenshot_h1_sim.png) |
-| 12 DOF, ¥9.9万起 | 23-43 DOF, ¥7.2万起 | 27 DOF, ¥65万起 |
-
-```bash
-# 环境准备（需要 conda 环境）
-conda activate unitree
-
-# 启动 Go2 仿真
-cd unitree_mujoco/simulate_python
-python unitree_mujoco.py
-
-# 用 SDK 控制虚拟机器人（另一个终端）
-cd unitree_sdk2_python/example
-python go2_stand_example.py
-```
-
-宇树仿真的 API 和实机**完全一致**——仿真中写的代码改一个网络参数就能跑在真机上。详见 [docs/unitree_dev_guide.md](docs/unitree_dev_guide.md)。
+| **4. 真机** | 入门机械臂 / 宇树 Go2/G1 | 持续 |
 
 ## 上真机需要什么
 
 | 条件 | 最低方案 | 推荐方案 |
 |------|---------|---------|
-| 机械臂 | 舵机臂套件 (~800元) | myCobot 280 (~3,000元) |
-| 主控 | 你的电脑 (USB) | Jetson Orin Nano (~3,000元) |
-| 传感器 | 关节编码器（臂自带） | + Intel RealSense 相机 |
-| 中间件 | pymycobot SDK | ROS 2 + MoveIt 2 |
+| 硬件 | 舵机臂 (~800元) | Unitree G1 (~7.2万) |
+| 主控 | 你的电脑 | Jetson Orin Nano (~3K) |
+| 传感器 | 编码器(自带) | + RealSense 相机 |
+| 中间件 | 串口/SDK | ROS 2 + MoveIt 2 |
 
 ## 项目结构
 
 ```
 embodied-agent/
-├── README.md
-├── requirements.txt
-├── assets/                          # 图片资源
-│   ├── architecture.png             # 架构图
-│   ├── sim_to_real.png              # Sim-to-Real 对比图
-│   ├── roadmap.png                  # 学习路线图
-│   ├── screenshot_initial.png       # 仿真截图：初始状态
-│   ├── screenshot_reaching.png      # 仿真截图：接近目标
-│   └── screenshot_grasp.png         # 仿真截图：抓取位置
 ├── demos/
-│   ├── 01_robot_arm_grasp.py        # Demo 1: 逆运动学抓取
-│   ├── 02_rl_training.py            # Demo 2: 强化学习训练
-│   ├── 03_deploy_model.py           # Demo 3: 模型部署
-│   └── rl_training.py               # 共享模块（环境+模型）
-└── docs/
-    └── tech_stack.md                # 技术栈详细文档
+│   ├── 01_robot_arm_grasp.py       # 逆运动学抓取 (PyBullet)
+│   ├── 02_rl_training.py           # 强化学习训练 (PyTorch)
+│   ├── 03_deploy_model.py          # 模型部署对比
+│   ├── 04_g1_actions.py            # 宇树 G1 动作演示 (MuJoCo)
+│   └── rl_training.py              # 共享模块
+├── docs/
+│   ├── tech_stack.md               # 技术栈全景
+│   └── unitree_dev_guide.md        # 宇树开发指南
+├── assets/                         # 图示 + 仿真截图
+├── requirements.txt
+└── README.md
 ```
 
 ## 相关资源
 
-- [PyBullet Quickstart](https://docs.google.com/document/d/10sXEhzFRSnvFcl3XxNGhnD4N2SedqwdAvK3dsihxVUA/)
-- [ROS 2 Jazzy](https://docs.ros.org/en/jazzy/) | [MoveIt 2](https://moveit.picknik.ai/) | [Nav2](https://docs.nav2.org/)
-- [MuJoCo](https://mujoco.readthedocs.io/) | [Isaac Sim](https://developer.nvidia.com/isaac-sim)
-- [Open X-Embodiment](https://robotics-transformer-x.github.io/) | [Gymnasium Robotics](https://robotics.farama.org/)
+| 资源 | 链接 |
+|------|------|
+| PyBullet | [pybullet.org](https://pybullet.org/) |
+| MuJoCo | [mujoco.readthedocs.io](https://mujoco.readthedocs.io/) |
+| 宇树 SDK | [unitree_sdk2_python](https://github.com/unitreerobotics/unitree_sdk2_python) |
+| 宇树仿真 | [unitree_mujoco](https://github.com/unitreerobotics/unitree_mujoco) |
+| 宇树 RL | [unitree_rl_gym](https://github.com/unitreerobotics/unitree_rl_gym) |
+| ROS 2 | [docs.ros.org](https://docs.ros.org/en/jazzy/) |
+| Isaac Sim | [developer.nvidia.com](https://developer.nvidia.com/isaac-sim) |
+| Open X-Embodiment | [robotics-transformer-x](https://robotics-transformer-x.github.io/) |
