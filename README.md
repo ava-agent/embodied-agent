@@ -13,7 +13,8 @@
   <a href="#demo-展示">Demo 展示</a> &middot;
   <a href="#宇树-g1-人形机器人">宇树 G1</a> &middot;
   <a href="#技术栈">技术栈</a> &middot;
-  <a href="#学习路线">学习路线</a>
+  <a href="#学习路线">学习路线</a> &middot;
+  <a href="docs/learning_guide.md"><b>学习指南</b></a>
 </p>
 
 ---
@@ -162,6 +163,8 @@ ChannelFactory.Instance().Init(0, "eth0")    # 以太网
 | **2. 进阶仿真** | MuJoCo + PPO/SAC + 图像输入 | 2-4 周 |
 | **3. ROS 2** | Docker 运行 ROS 2，Gazebo 仿真 | 2-4 周 |
 | **4. 真机** | 入门机械臂 / 宇树 Go2/G1 | 持续 |
+
+> **完整学习指南**：每个阶段需要掌握的原理、推荐资料、对应 Demo 代码 → [docs/learning_guide.md](docs/learning_guide.md)
 
 ## 上真机需要什么
 
